@@ -7,7 +7,7 @@
     "dev": "vite",
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "server:dev": "cd server && npm run dev",
-    "server:init": "cd server && npm run init-db",
+    "server:init": "cd server && npm install && npm run init-db",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
