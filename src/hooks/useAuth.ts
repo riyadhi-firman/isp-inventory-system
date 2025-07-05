@@ -21,11 +21,18 @@ export const useAuth = () => {
     try {
       const token = localStorage.getItem('authToken');
       if (token) {
-        const response = await authAPI.getProfile();
-        setUser(response.data);
-        setIsAuthenticated(true);
+        try {
+          const response = await authAPI.getProfile();
+          setUser(response.data);
+          setIsAuthenticated(true);
+        } catch (error) {
+          // If profile fetch fails, remove invalid token
+          localStorage.removeItem('authToken');
+          setIsAuthenticated(false);
+        }
       }
     } catch (error) {
+      console.error('Auth check failed:', error);
       localStorage.removeItem('authToken');
       setIsAuthenticated(false);
     } finally {
@@ -41,6 +48,7 @@ export const useAuth = () => {
       setIsAuthenticated(true);
       return { success: true };
     } catch (error: any) {
+      console.error('Login failed:', error);
       return { success: false, error: error.message };
     }
   };

@@ -109,6 +109,9 @@ const LoginForm: React.FC = () => {
             <p className="text-sm text-gray-600">
               Default credentials: admin@isp.com / admin123
             </p>
+            <p className="text-xs text-gray-500 mt-2">
+              Make sure the backend server is running on port 3001
+            </p>
           </div>
         </form>
       </div>
