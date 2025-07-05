@@ -10,16 +10,35 @@ import {
   ArrowDown,
   ArrowLeftRight
 } from 'lucide-react';
-import { mockDashboardStats, mockStockItems, mockTransactions } from '../../data/mockData';
+import { useDashboard } from '../../hooks/useDashboard';
 
 const Dashboard: React.FC = () => {
-  const lowStockItems = mockStockItems.filter(item => item.quantity <= item.minStock);
-  const pendingTransactions = mockTransactions.filter(transaction => transaction.status === 'pending');
+  const { dashboardData, lowStockItems, recentTransactions, isLoading } = useDashboard();
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="text-center py-12">
+          <p className="text-gray-500">Failed to load dashboard data</p>
+        </div>
+      </div>
+    );
+  }
 
   const stats = [
     {
       title: 'Total Stock Items',
-      value: mockDashboardStats.totalStock,
+      value: dashboardData.totalStock || 0,
       icon: Package,
       color: 'blue',
       trend: '+5.2%',
@@ -27,7 +46,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Low Stock Alerts',
-      value: mockDashboardStats.lowStockItems,
+      value: dashboardData.lowStockItems || 0,
       icon: AlertTriangle,
       color: 'red',
       trend: '-2.1%',
@@ -35,7 +54,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Pending Transactions',
-      value: mockDashboardStats.pendingTransactions,
+      value: dashboardData.pendingTransactions || 0,
       icon: Clock,
       color: 'yellow',
       trend: '+8.4%',
@@ -43,7 +62,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Active Customers',
-      value: mockDashboardStats.activeCustomers,
+      value: dashboardData.activeCustomers || 0,
       icon: Users,
       color: 'green',
       trend: '+12.3%',
@@ -51,7 +70,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Monthly Installations',
-      value: mockDashboardStats.monthlyInstallations,
+      value: dashboardData.monthlyInstallations || 0,
       icon: TrendingUp,
       color: 'purple',
       trend: '+15.7%',
@@ -59,7 +78,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Team Performance',
-      value: `${mockDashboardStats.teamPerformance}%`,
+      value: `${dashboardData.teamPerformance || 0}%`,
       icon: Award,
       color: 'indigo',
       trend: '+3.2%',
@@ -136,34 +155,46 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-red-600">{item.quantity} {item.unit}</p>
-                  <p className="text-xs text-gray-500">Min: {item.minStock}</p>
+                  <p className="text-xs text-gray-500">Min: {item.min_stock}</p>
                 </div>
               </div>
             ))}
+            {lowStockItems.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No low stock alerts</p>
+            )}
           </div>
         </div>
 
-        {/* Pending Transactions */}
+        {/* Recent Transactions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center space-x-2 mb-4">
             <Clock className="w-5 h-5 text-yellow-500" />
-            <h3 className="text-lg font-semibold text-gray-900">Pending Transactions</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
           </div>
           <div className="space-y-3">
-            {pendingTransactions.slice(0, 3).map((transaction) => (
+            {recentTransactions.slice(0, 3).map((transaction) => (
               <div key={transaction.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                 <div>
                   <p className="font-medium text-gray-900 capitalize">{transaction.type}</p>
                   <p className="text-sm text-gray-600">{transaction.notes}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-yellow-600">Pending</p>
-                  <p className="text-xs text-gray-500">
-                    {transaction.createdAt.toLocaleDateString()}
+                  <p className={`text-sm font-medium px-2 py-1 rounded-full ${
+                    transaction.status === 'completed' ? 'bg-green-100 text-green-600' :
+                    transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                    'bg-blue-100 text-blue-600'
+                  }`}>
+                    {transaction.status}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(transaction.created_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>
             ))}
+            {recentTransactions.length === 0 && (
+              <p className="text-gray-500 text-center py-4">No recent transactions</p>
+            )}
           </div>
         </div>
       </div>
@@ -172,7 +203,7 @@ const Dashboard: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
         <div className="space-y-4">
-          {mockTransactions.slice(0, 5).map((transaction) => (
+          {recentTransactions.slice(0, 5).map((transaction) => (
             <div key={transaction.id} className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
               <div className={`p-2 rounded-lg ${
                 transaction.status === 'completed' ? 'bg-green-100 text-green-600' :
@@ -194,11 +225,14 @@ const Dashboard: React.FC = () => {
                   {transaction.status}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {transaction.createdAt.toLocaleDateString()}
+                  {new Date(transaction.created_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
           ))}
+          {recentTransactions.length === 0 && (
+            <p className="text-gray-500 text-center py-4">No recent activity</p>
+          )}
         </div>
       </div>
     </div>

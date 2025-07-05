@@ -10,6 +10,7 @@ const StockManagement: React.FC = () => {
   
   const {
     stockItems,
+    isLoading,
     isAddModalOpen,
     isEditModalOpen,
     selectedItem,
@@ -47,6 +48,16 @@ const StockManagement: React.FC = () => {
       return { status: 'In Stock', color: 'text-green-600 bg-green-100' };
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

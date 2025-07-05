@@ -1,39 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { stockAPI } from '../services/api';
 import { StockItem } from '../types';
-import { mockStockItems } from '../data/mockData';
 
 export const useStockManagement = () => {
-  const [stockItems, setStockItems] = useState<StockItem[]>(mockStockItems);
+  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<StockItem | null>(null);
 
-  const addStockItem = (newItem: Omit<StockItem, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const item: StockItem = {
-      ...newItem,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    setStockItems(prev => [...prev, item]);
-    setIsAddModalOpen(false);
+  useEffect(() => {
+    fetchStockItems();
+  }, []);
+
+  const fetchStockItems = async () => {
+    try {
+      setIsLoading(true);
+      const response = await stockAPI.getAll();
+      setStockItems(response.data.items || []);
+    } catch (error) {
+      console.error('Error fetching stock items:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateStockItem = (updatedItem: StockItem) => {
-    setStockItems(prev => 
-      prev.map(item => 
-        item.id === updatedItem.id 
-          ? { ...updatedItem, updatedAt: new Date() }
-          : item
-      )
-    );
-    setIsEditModalOpen(false);
-    setSelectedItem(null);
+  const addStockItem = async (newItem: Omit<StockItem, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const response = await stockAPI.create(newItem);
+      setStockItems(prev => [...prev, response.data]);
+      setIsAddModalOpen(false);
+    } catch (error) {
+      console.error('Error adding stock item:', error);
+      alert('Failed to add stock item');
+    }
   };
 
-  const deleteStockItem = (id: string) => {
+  const updateStockItem = async (updatedItem: StockItem) => {
+    try {
+      const response = await stockAPI.update(updatedItem.id, updatedItem);
+      setStockItems(prev => 
+        prev.map(item => 
+          item.id === updatedItem.id ? response.data : item
+        )
+      );
+      setIsEditModalOpen(false);
+      setSelectedItem(null);
+    } catch (error) {
+      console.error('Error updating stock item:', error);
+      alert('Failed to update stock item');
+    }
+  };
+
+  const deleteStockItem = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
-      setStockItems(prev => prev.filter(item => item.id !== id));
+      try {
+        await stockAPI.delete(id);
+        setStockItems(prev => prev.filter(item => item.id !== id));
+      } catch (error) {
+        console.error('Error deleting stock item:', error);
+        alert('Failed to delete stock item');
+      }
     }
   };
 
@@ -44,6 +71,7 @@ export const useStockManagement = () => {
 
   return {
     stockItems,
+    isLoading,
     isAddModalOpen,
     isEditModalOpen,
     selectedItem,
@@ -52,6 +80,7 @@ export const useStockManagement = () => {
     addStockItem,
     updateStockItem,
     deleteStockItem,
-    openEditModal
+    openEditModal,
+    refreshData: fetchStockItems,
   };
 };
